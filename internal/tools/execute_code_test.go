@@ -54,4 +54,3 @@ func TestExecuteCodeSyntaxError(t *testing.T) {
 		t.Fatal("expected compile error for invalid syntax")
 	}
 }
-

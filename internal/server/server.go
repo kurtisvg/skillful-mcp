@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/clientmanager"
 	"skillful-mcp/internal/tools"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func NewServer(mgr *clientmanager.Manager) *mcp.Server {

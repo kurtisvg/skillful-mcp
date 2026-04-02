@@ -24,7 +24,7 @@ func startFakeServer(t *testing.T, ctx context.Context, toolName string) *mcp.Cl
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 
-	go server.Run(ctx, serverTransport)
+	go func() { _ = server.Run(ctx, serverTransport) }()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test-client"}, nil)
 	session, err := client.Connect(ctx, clientTransport, nil)

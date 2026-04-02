@@ -8,8 +8,9 @@ import (
 	"os/exec"
 	"sort"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/config"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type Manager struct {

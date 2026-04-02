@@ -3,8 +3,9 @@ package tools
 import (
 	"context"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/clientmanager"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type readResourceInput struct {

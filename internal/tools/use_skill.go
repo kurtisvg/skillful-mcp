@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/clientmanager"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type useSkillInput struct {

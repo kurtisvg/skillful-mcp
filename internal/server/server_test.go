@@ -6,9 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/clientmanager"
 	"skillful-mcp/internal/server"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // startDownstream creates a fake MCP server with the given tools and resources,
@@ -40,7 +41,7 @@ func startDownstream(t *testing.T, ctx context.Context, tools []mcp.Tool, resour
 	}
 
 	serverT, clientT := mcp.NewInMemoryTransports()
-	go s.Run(ctx, serverT)
+	go func() { _ = s.Run(ctx, serverT) }()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test"}, nil)
 	session, err := client.Connect(ctx, clientT, nil)
@@ -80,7 +81,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 	// Create the upstream server and connect a test client.
 	upstream := server.NewServer(mgr)
 	serverT, clientT := mcp.NewInMemoryTransports()
-	go upstream.Run(ctx, serverT)
+	go func() { _ = upstream.Run(ctx, serverT) }()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "e2e-client"}, nil)
 	session, err := client.Connect(ctx, clientT, nil)
@@ -96,7 +97,9 @@ func TestE2EMultipleSkills(t *testing.T) {
 		}
 		tc := result.Content[0].(*mcp.TextContent)
 		var names []string
-		json.Unmarshal([]byte(tc.Text), &names)
+		if err := json.Unmarshal([]byte(tc.Text), &names); err != nil {
+			t.Fatal(err)
+		}
 		if len(names) != 2 || names[0] != "database" || names[1] != "filesystem" {
 			t.Errorf("expected [database, filesystem], got %v", names)
 		}
@@ -113,11 +116,13 @@ func TestE2EMultipleSkills(t *testing.T) {
 		}
 		tc := result.Content[0].(*mcp.TextContent)
 		var info struct {
-			Skill     string `json:"skill"`
+			Skill     string                  `json:"skill"`
 			Tools     []struct{ Name string } `json:"tools"`
-			Resources []any `json:"resources"`
+			Resources []any                   `json:"resources"`
 		}
-		json.Unmarshal([]byte(tc.Text), &info)
+		if err := json.Unmarshal([]byte(tc.Text), &info); err != nil {
+			t.Fatal(err)
+		}
 
 		if info.Skill != "database" {
 			t.Errorf("skill = %q, want database", info.Skill)
@@ -151,7 +156,9 @@ func TestE2EMultipleSkills(t *testing.T) {
 			Tools     []struct{ Name string } `json:"tools"`
 			Resources []struct{ URI string }  `json:"resources"`
 		}
-		json.Unmarshal([]byte(tc.Text), &info)
+		if err := json.Unmarshal([]byte(tc.Text), &info); err != nil {
+			t.Fatal(err)
+		}
 
 		if len(info.Tools) != 1 || info.Tools[0].Name != "read_file" {
 			t.Errorf("expected [read_file], got %v", info.Tools)
@@ -255,8 +262,12 @@ a + " | " + b
 		if len(parts) != 2 {
 			t.Fatalf("expected 2 parts separated by ' | ', got %q", tc.Text)
 		}
-		json.Unmarshal([]byte(parts[0]), &resp1)
-		json.Unmarshal([]byte(parts[1]), &resp2)
+		if err := json.Unmarshal([]byte(parts[0]), &resp1); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal([]byte(parts[1]), &resp2); err != nil {
+			t.Fatal(err)
+		}
 		if resp1["tool"] != "query" {
 			t.Errorf("first tool = %v, want 'query'", resp1["tool"])
 		}

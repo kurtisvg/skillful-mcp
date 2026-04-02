@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"skillful-mcp/internal/clientmanager"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func newFakeSession(t *testing.T, ctx context.Context, configure ...func(*mcp.Server)) *mcp.ClientSession {
@@ -18,7 +19,7 @@ func newFakeSession(t *testing.T, ctx context.Context, configure ...func(*mcp.Se
 		fn(s)
 	}
 	serverT, clientT := mcp.NewInMemoryTransports()
-	go s.Run(ctx, serverT)
+	go func() { _ = s.Run(ctx, serverT) }()
 	client := mcp.NewClient(&mcp.Implementation{Name: "test"}, nil)
 	session, err := client.Connect(ctx, clientT, nil)
 	if err != nil {

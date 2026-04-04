@@ -10,6 +10,7 @@ import (
 
 type Manager struct {
 	servers map[string]*Server
+	tools   []Tool
 }
 
 // NewManager creates a Manager by connecting to all servers in the config.
@@ -27,12 +28,24 @@ func NewManager(ctx context.Context, cfgs map[string]config.Server) (*Manager, e
 		slog.Info("connected to server", "skill", name)
 	}
 
+	tools, err := resolveTools(m.servers)
+	if err != nil {
+		m.Close()
+		return nil, err
+	}
+	m.tools = tools
 	return m, nil
 }
 
 // NewManagerFromServers creates a Manager from pre-built Servers (useful for testing).
-func NewManagerFromServers(servers map[string]*Server) *Manager {
-	return &Manager{servers: servers}
+func NewManagerFromServers(servers map[string]*Server) (*Manager, error) {
+	m := &Manager{servers: servers}
+	tools, err := resolveTools(m.servers)
+	if err != nil {
+		return nil, err
+	}
+	m.tools = tools
+	return m, nil
 }
 
 func (m *Manager) GetServer(name string) (*Server, error) {
@@ -49,6 +62,20 @@ func (m *Manager) ListServerNames() []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+func (m *Manager) AllTools() []Tool {
+	return m.tools
+}
+
+func (m *Manager) ServerTools(name string) []Tool {
+	var tools []Tool
+	for _, t := range m.tools {
+		if t.SkillName == name {
+			tools = append(tools, t)
+		}
+	}
+	return tools
 }
 
 func (m *Manager) Close() {

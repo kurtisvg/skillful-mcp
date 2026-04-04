@@ -40,7 +40,11 @@ func ServeHTTP(ctx context.Context, s *mcp.Server, host, port string) error {
 		return s
 	}, nil)
 	addr := net.JoinHostPort(host, port)
-	srv := &http.Server{Addr: addr, Handler: handler}
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)

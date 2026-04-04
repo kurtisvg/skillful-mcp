@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"skillful-mcp/internal/app"
 	"skillful-mcp/internal/config"
@@ -47,7 +48,7 @@ func Execute() {
 		}
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	mgr, err := mcpserver.NewManager(ctx, servers)

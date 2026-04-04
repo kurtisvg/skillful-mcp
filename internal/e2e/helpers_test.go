@@ -21,7 +21,6 @@ func startFakeServer(t *testing.T, ctx context.Context, instructions string, too
 		Instructions: instructions,
 	})
 	for _, tool := range tools {
-		tool := tool
 		mcp.AddTool(s, &tool, func(ctx context.Context, req *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
 			// Echo back the tool name and arguments for verification.
 			resp := map[string]any{"tool": tool.Name, "args": input}
@@ -32,7 +31,6 @@ func startFakeServer(t *testing.T, ctx context.Context, instructions string, too
 		})
 	}
 	for _, r := range resources {
-		r := r
 		s.AddResource(&r, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 			return &mcp.ReadResourceResult{
 				Contents: []*mcp.ResourceContents{

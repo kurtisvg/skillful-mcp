@@ -65,7 +65,7 @@ func buildToolFunctions(mgr *mcpserver.Manager) map[string]monty.ExternalFunctio
 	allTools := mgr.AllTools()
 	fns := make(map[string]monty.ExternalFunction, len(allTools))
 	for _, t := range allTools {
-		session, err := mgr.GetServer(t.SkillName)
+		srv, err := mgr.GetServer(t.SkillName)
 		if err != nil {
 			continue
 		}
@@ -103,7 +103,7 @@ func buildToolFunctions(mgr *mcpserver.Manager) map[string]monty.ExternalFunctio
 				args[key] = montyValueToAny(pair.Value)
 			}
 
-			toolResult, err := session.CallTool(fnCtx, &mcp.CallToolParams{
+			toolResult, err := srv.CallTool(fnCtx, &mcp.CallToolParams{
 				Name:      t.OriginalName,
 				Arguments: args,
 			})

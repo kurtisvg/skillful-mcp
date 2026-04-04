@@ -1,3 +1,13 @@
 package version
 
-const Version = "0.1.0"
+import (
+	_ "embed"
+	"strings"
+)
+
+//go:embed version.txt
+var Version string
+
+func init() {
+	Version = strings.TrimSpace(Version)
+}

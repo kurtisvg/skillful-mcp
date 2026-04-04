@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"skillful-mcp/internal/mcpserver"
+	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
 
 	monty "github.com/ewhauser/gomonty"
 	"github.com/modelcontextprotocol/go-sdk/mcp"

@@ -1,4 +1,4 @@
-module skillful-mcp
+module github.com/kurtisvg/skillful-mcp
 
 go 1.25.0
 

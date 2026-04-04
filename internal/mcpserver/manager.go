@@ -50,36 +50,6 @@ func NewManagerFromServers(servers map[string]*Server) (*Manager, error) {
 	return m, nil
 }
 
-func (m *Manager) GetServer(name string) (*Server, error) {
-	s, ok := m.servers[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown skill: %q", name)
-	}
-	return s, nil
-}
-
-func (m *Manager) ListServerNames() []string {
-	names := make([]string, 0, len(m.servers))
-	for name := range m.servers {
-		names = append(names, name)
-	}
-	return names
-}
-
-func (m *Manager) AllTools() []Tool {
-	return m.tools
-}
-
-func (m *Manager) ServerTools(name string) []Tool {
-	var tools []Tool
-	for _, t := range m.tools {
-		if t.SkillName == name {
-			tools = append(tools, t)
-		}
-	}
-	return tools
-}
-
 // resolveTools resolves tool names across all servers, prefixing with
 // server name only when multiple servers define a tool with the same name.
 func resolveTools(servers map[string]*Server) ([]Tool, error) {
@@ -114,6 +84,36 @@ func resolveTools(servers map[string]*Server) ([]Tool, error) {
 		}
 	}
 	return resolved, nil
+}
+
+func (m *Manager) GetServer(name string) (*Server, error) {
+	s, ok := m.servers[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown skill: %q", name)
+	}
+	return s, nil
+}
+
+func (m *Manager) ListServerNames() []string {
+	names := make([]string, 0, len(m.servers))
+	for name := range m.servers {
+		names = append(names, name)
+	}
+	return names
+}
+
+func (m *Manager) AllTools() []Tool {
+	return m.tools
+}
+
+func (m *Manager) ServerTools(name string) []Tool {
+	var tools []Tool
+	for _, t := range m.tools {
+		if t.SkillName == name {
+			tools = append(tools, t)
+		}
+	}
+	return tools
 }
 
 func (m *Manager) Close() {

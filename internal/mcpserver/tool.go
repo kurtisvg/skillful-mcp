@@ -12,7 +12,7 @@ import (
 type Tool struct {
 	ResolvedName string
 	OriginalName string
-	SkillName    string
+	ServerName   string
 	Description  string
 	Params       []ParamInfo
 	OutputSchema any // raw JSON Schema for output, nil = unstructured (str)
@@ -49,7 +49,7 @@ func (t *Tool) Signature() string {
 	return sig
 }
 
-func newTool(resolvedName, originalName, skillName string, tool *mcp.Tool) (Tool, error) {
+func newTool(resolvedName, originalName, serverName string, tool *mcp.Tool) (Tool, error) {
 	params, err := extractParamSchema(tool.InputSchema)
 	if err != nil {
 		return Tool{}, fmt.Errorf("tool %q: %w", originalName, err)
@@ -57,7 +57,7 @@ func newTool(resolvedName, originalName, skillName string, tool *mcp.Tool) (Tool
 	return Tool{
 		ResolvedName: resolvedName,
 		OriginalName: originalName,
-		SkillName:    skillName,
+		ServerName:   serverName,
 		Description:  tool.Description,
 		Params:       params,
 		OutputSchema: tool.OutputSchema,

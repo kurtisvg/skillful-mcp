@@ -65,7 +65,7 @@ func buildToolFunctions(mgr *mcpserver.Manager) map[string]monty.ExternalFunctio
 	tools := mgr.AllTools()
 	fns := make(map[string]monty.ExternalFunction, len(tools))
 	for _, t := range tools {
-		srv, err := mgr.GetServer(t.SkillName)
+		srv, err := mgr.GetServer(t.ServerName)
 		if err != nil {
 			continue
 		}

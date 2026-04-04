@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"time"
 
 	"skillful-mcp/internal/mcpserver"
 	"skillful-mcp/internal/tools"
@@ -42,7 +43,9 @@ func ServeHTTP(ctx context.Context, s *mcp.Server, host, port string) error {
 	srv := &http.Server{Addr: addr, Handler: handler}
 	go func() {
 		<-ctx.Done()
-		if err := srv.Shutdown(context.Background()); err != nil {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
 			slog.Warn("http server shutdown error", "error", err)
 		}
 	}()

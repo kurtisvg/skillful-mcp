@@ -51,9 +51,9 @@ func startDownstream(t *testing.T, ctx context.Context, tools []mcp.Tool, resour
 	return session
 }
 
-// connectUpstream creates an app server backed by the given manager, connects
+// connectTestClient creates an app server backed by the given manager, connects
 // a test client, and returns the session.
-func connectUpstream(t *testing.T, ctx context.Context, mgr *mcpserver.Manager) *mcp.ClientSession {
+func connectTestClient(t *testing.T, ctx context.Context, mgr *mcpserver.Manager) *mcp.ClientSession {
 	t.Helper()
 
 	upstream := app.NewServer(mgr)
@@ -74,7 +74,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 
 	dbSession := startDownstream(t, ctx,
 		[]mcp.Tool{
-			{Name: "query", Description: "Run a SQL query"},
+			{Name: "execute_sql", Description: "Run a SQL query"},
 			{Name: "list_tables", Description: "List database tables"},
 		},
 		nil,
@@ -94,7 +94,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 	})
 	defer mgr.Close()
 
-	session := connectUpstream(t, ctx, mgr)
+	session := connectTestClient(t, ctx, mgr)
 
 	t.Run("list_skills", func(t *testing.T) {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "list_skills"})
@@ -143,8 +143,8 @@ func TestE2EMultipleSkills(t *testing.T) {
 		for _, tool := range info.Tools {
 			toolNames[tool.Name] = true
 		}
-		if !toolNames["query"] || !toolNames["list_tables"] {
-			t.Errorf("expected query and list_tables, got %v", info.Tools)
+		if !toolNames["execute_sql"] || !toolNames["list_tables"] {
+			t.Errorf("expected execute_sql and list_tables, got %v", info.Tools)
 		}
 		if len(info.Resources) != 0 {
 			t.Errorf("expected 0 resources, got %d", len(info.Resources))
@@ -213,7 +213,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 	t.Run("execute_code_call_tool", func(t *testing.T) {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
-			Arguments: map[string]any{"code": `query(sql="SELECT 1")`},
+			Arguments: map[string]any{"code": `execute_sql(sql="SELECT 1")`},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -227,8 +227,8 @@ func TestE2EMultipleSkills(t *testing.T) {
 		if err := json.Unmarshal([]byte(tc.Text), &resp); err != nil {
 			t.Fatalf("failed to parse response %q: %v", tc.Text, err)
 		}
-		if resp["tool"] != "query" {
-			t.Errorf("tool = %v, want 'query'", resp["tool"])
+		if resp["tool"] != "execute_sql" {
+			t.Errorf("tool = %v, want 'execute_sql'", resp["tool"])
 		}
 		args := resp["args"].(map[string]any)
 		if args["sql"] != "SELECT 1" {
@@ -238,7 +238,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 
 	t.Run("execute_code_multi_tool", func(t *testing.T) {
 		code := `
-a = query(sql="SELECT 1")
+a = execute_sql(sql="SELECT 1")
 b = read_file(path="/tmp/test.txt")
 a + " | " + b
 `
@@ -265,8 +265,8 @@ a + " | " + b
 		if err := json.Unmarshal([]byte(parts[1]), &resp2); err != nil {
 			t.Fatal(err)
 		}
-		if resp1["tool"] != "query" {
-			t.Errorf("first tool = %v, want 'query'", resp1["tool"])
+		if resp1["tool"] != "execute_sql" {
+			t.Errorf("first tool = %v, want 'execute_sql'", resp1["tool"])
 		}
 		if resp2["tool"] != "read_file" {
 			t.Errorf("second tool = %v, want 'read_file'", resp2["tool"])
@@ -295,8 +295,8 @@ func TestE2EPositionalArgs(t *testing.T) {
 		SQL string `json:"sql" jsonschema:"the SQL query"`
 	}
 	ds := mcp.NewServer(&mcp.Implementation{Name: "typed-downstream"}, nil)
-	mcp.AddTool(ds, &mcp.Tool{Name: "query", Description: "Run a SQL query"}, func(ctx context.Context, req *mcp.CallToolRequest, input QueryInput) (*mcp.CallToolResult, any, error) {
-		resp := map[string]any{"tool": "query", "sql": input.SQL}
+	mcp.AddTool(ds, &mcp.Tool{Name: "execute_sql", Description: "Run a SQL query"}, func(ctx context.Context, req *mcp.CallToolRequest, input QueryInput) (*mcp.CallToolResult, any, error) {
+		resp := map[string]any{"tool": "execute_sql", "sql": input.SQL}
 		data, _ := json.Marshal(resp)
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{Text: string(data)}},
@@ -314,12 +314,12 @@ func TestE2EPositionalArgs(t *testing.T) {
 	mgr := mcpserver.NewManagerFromServers(map[string]*mcpserver.Server{"db": mcpserver.NewServerFromSession(dsSession)})
 	defer mgr.Close()
 
-	session := connectUpstream(t, ctx, mgr)
+	session := connectTestClient(t, ctx, mgr)
 
 	t.Run("positional_arg", func(t *testing.T) {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
-			Arguments: map[string]any{"code": `query("SELECT 1")`},
+			Arguments: map[string]any{"code": `execute_sql("SELECT 1")`},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -341,7 +341,7 @@ func TestE2EPositionalArgs(t *testing.T) {
 	t.Run("keyword_arg", func(t *testing.T) {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
-			Arguments: map[string]any{"code": `query(sql="SELECT 2")`},
+			Arguments: map[string]any{"code": `execute_sql(sql="SELECT 2")`},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -384,7 +384,7 @@ func TestE2EToolNameConflict(t *testing.T) {
 	})
 	defer mgr.Close()
 
-	session := connectUpstream(t, ctx, mgr)
+	session := connectTestClient(t, ctx, mgr)
 
 	t.Run("use_skill_shows_resolved_names", func(t *testing.T) {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{

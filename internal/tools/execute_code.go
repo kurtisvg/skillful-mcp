@@ -62,9 +62,9 @@ func RegisterExecuteCode(s *mcp.Server, mgr *mcpserver.Manager) {
 // buildToolFunctions creates a Monty external function for each downstream tool,
 // using resolved names (prefixed only on conflict).
 func buildToolFunctions(mgr *mcpserver.Manager) map[string]monty.ExternalFunction {
-	allTools := mgr.AllTools()
-	fns := make(map[string]monty.ExternalFunction, len(allTools))
-	for _, t := range allTools {
+	tools := mgr.AllTools()
+	fns := make(map[string]monty.ExternalFunction, len(tools))
+	for _, t := range tools {
 		srv, err := mgr.GetServer(t.SkillName)
 		if err != nil {
 			continue

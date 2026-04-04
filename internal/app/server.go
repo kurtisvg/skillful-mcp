@@ -43,7 +43,7 @@ func ServeHTTP(ctx context.Context, s *mcp.Server, host, port string) error {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
 	}
 	go func() {
 		<-ctx.Done()

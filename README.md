@@ -8,12 +8,12 @@
 Suffering from tool bloat? Need progressive disclosure for your MCP servers?
 Sounds like a Skill Issue 😉
 
-**skillful-mcp** eliminates tool bloat by turning your MCP servers into MCP-native Agent Skills.
+**skillful-mcp** eliminates tool bloat by turning your MCP servers into Agent Skills in an MCP-native way.
 
-- 🔍 **Progressive disclosure** — agents see 4 tools, not 80
-- ⚡ **Code mode** — orchestrate multiple tools in a single Python round-trip
-- 📄 **Standard config** — uses the same `mcp.json` as Claude Code / Claude Desktop
-- 🔌 **Any transport** — stdio, HTTP, SSE
+- 🔍 **Progressive Disclosure** — start with 4 tools, discover more as needed
+- ⚡ **Code Mode** — trigger and combine multiple tool calls with Python
+- 🔒 **Secure sandbox** — code executes in a sandbox, not your shell
+- 🔌 **Any MCP client** — works with Gemini CLI, Claude Code, Codex, and more
 
 ## Table of contents
 
@@ -22,7 +22,7 @@ Sounds like a Skill Issue 😉
 - [Getting started](#getting-started)
 - [Configuration](#configuration)
 
-## Why? 
+## Why?
 
 Connecting an agent to too many tools (or MCP servers) creates
 [tool bloat][tool-bloat]. An agent with access to 5 servers might have 80+ tools
@@ -59,7 +59,7 @@ The typical agent workflow:
 2. Call `use_skill` to inspect a skill's tools and their input schemas
 3. Use `execute_code` to orchestrate tool calls in a single round-trip
 
-### Example Code Mode Usage 
+### Example Code Mode Usage
 
 After discovering tools via `use_skill`, the agent can call them directly by
 name inside `execute_code` — chaining outputs from one tool into another:
@@ -230,6 +230,9 @@ specific capability.
 
 Each entry in `mcpServers` is a downstream server that becomes a skill. The key
 is the skill name. The value depends on the transport type.
+
+All string values support `${VAR}` environment variable expansion. Missing
+variables cause a startup error.
 
 ### Common options
 

@@ -1,26 +1,35 @@
 # skillful-mcp
 
-An MCP middleware that aggregates multiple downstream MCP servers into
-mcp-native Agent Skills. Each server becomes a Skill that an AI agent can
-discover and execute those tools through code mode.
+[![Go](https://img.shields.io/github/go-mod/go-version/kurtisvg/skillful-mcp)](https://go.dev/)
+[![CI](https://github.com/kurtisvg/skillful-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/kurtisvg/skillful-mcp/actions/workflows/test.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kurtisvg/skillful-mcp)](https://goreportcard.com/report/github.com/kurtisvg/skillful-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Why
+Suffering from tool bloat? Need progressive disclosure for your MCP servers?
+Sounds like a Skill Issue ;)
 
-MCP servers solve connectivity — any tool can expose a standard interface. But
-connecting an agent to many servers creates a new problem: [tool
-bloat](https://kvg.dev/posts/20260125-skills-and-mcp/).
+**skillful-mcp** eliminates tool bloat by turning your MCP servers into MCP-native Agent Skills.
 
-An agent with access to 5 MCP servers might have 80+ tools. Every tool schema
-gets loaded into the context window before the user says a word. The model's
-attention is diluted across dozens of options, accuracy drops, and latency
-increases. Adding more capabilities makes the agent worse.
+## Table of contents
 
-skillful-mcp fixes this through **progressive disclosure**. Instead of injecting
-all tool definitions upfront, the agent sees just 4 tools (`list_skills`,
-`use_skill`, `read_resource`, `execute_code`). It discovers specific tool
-schemas on-demand by calling `use_skill`, keeping the context window lean. This
-collapses thousands of tokens of tool definitions down to a lightweight index —
-and only loads what's needed, when it's needed.
+- [Why?](#why)
+- [How it works](#how-it-works)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+
+## Why? 
+
+Connecting an agent to too many tools (or MCP servers) creates
+[tool bloat][tool-bloat]. An agent with access to 5 servers might have 80+ tools
+loaded into its context window before the user says a word. Accuracy drops,
+latency increases, and adding capabilities makes the agent worse.
+
+skillful-mcp fixes this through **progressive disclosure**. The agent sees just 4
+tools and discovers specific schemas on-demand, collapsing thousands of tokens
+down to a lightweight index.
+
+[tool-bloat]: https://kvg.dev/posts/20260125-skills-and-mcp/
 
 ## How it works
 
@@ -30,32 +39,33 @@ Agent  <--MCP-->  skillful-mcp  <--MCP-->  Database Server
                                 <--MCP-->  API Server
 ```
 
-skillful-mcp reads a standard `mcp.json` config (same format as Claude Code /
-Claude Desktop), connects to each downstream server, and exposes four tools:
+skillful-mcp reads a standard `mcp.json` config, connects to each downstream
+server, and exposes four tools:
 
-| Tool | Description |
-|------|-------------|
-| `list_skills` | Returns the names of all configured downstream servers |
-| `use_skill` | Lists the tools and resources available in a specific skill |
-| `read_resource` | Reads a resource from a specific skill |
-| `execute_code` | Runs Python code in a secure [Monty](https://github.com/pydantic/monty) sandbox |
+| Tool             | Description                                                                      |
+|------------------|----------------------------------------------------------------------------------|
+| `list_skills`    | Returns the names of all configured downstream servers                           |
+| `use_skill`      | Lists the tools and resources available in a specific skill                      |
+| `read_resource`  | Reads a resource from a specific skill                                           |
+| `execute_code`   | Runs Python code in a secure [Monty](https://github.com/pydantic/monty) sandbox |
 
-The typical agent workflow is:
+The typical agent workflow:
 
 1. Call `list_skills` to see what's available
 2. Call `use_skill` to inspect a skill's tools and their input schemas
 3. Use `execute_code` to orchestrate tool calls in a single round-trip
 
-### Code mode example
+### Example Code Mode Usage 
 
 After discovering tools via `use_skill`, the agent can call them directly by
-name inside `execute_code`:
+name inside `execute_code` — chaining outputs from one tool into another:
 
 ```python
-# Call tools from different skills in a single execution
-users = query(sql="SELECT name, email FROM users WHERE active = true")
-report = read_file(path="/templates/report.md")
-users + "\n\n" + report
+# Query users, then send each one a welcome email
+users = query(sql="SELECT name, email FROM users WHERE welcomed = false")
+for user in users:
+    send_email(to=user["email"], subject="Welcome!", body="Hi " + user["name"])
+"Sent " + str(len(users)) + " welcome emails"
 ```
 
 All downstream tools are available as functions with positional and keyword
@@ -63,30 +73,155 @@ arguments. If two skills define a tool with the same name, the function is
 prefixed with the skill name (e.g. `database_search`, `docs_search`). Tool
 names returned by `use_skill` always match the function names in `execute_code`.
 
-## Configuration
+## Quick start
 
-Create an `mcp.json` file:
+### Install
+
+```sh
+go install github.com/kurtisvg/skillful-mcp@latest
+```
+
+Or build from source:
+
+```sh
+git clone https://github.com/kurtisvg/skillful-mcp.git
+cd skillful-mcp
+go build -o skillful-mcp .
+```
+
+### Create a config
+
+Create an `mcp.json` file with your downstream servers:
 
 ```json
 {
   "mcpServers": {
-    "<mcp-name>": { ... }
+    "database": {
+      "command": "npx",
+      "args": ["-y", "@toolbox-sdk/server", "--prebuilt=postgres"]
+    }
   }
 }
 ```
 
+### Run
+
+```sh
+skillful-mcp --config mcp.json
+```
+
+Or over HTTP:
+
+```sh
+skillful-mcp --config mcp.json --transport http --port 8080
+```
+
+### Connect to your agent
+
+<details>
+<summary><strong>Claude Code</strong> (<code>.claude/settings.json</code>)</summary>
+
+```json
+{
+  "mcpServers": {
+    "skillful": {
+      "command": "skillful-mcp",
+      "args": ["--config", "/path/to/mcp.json"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><strong>Gemini CLI</strong> (<code>~/.gemini/settings.json</code>)</summary>
+
+```json
+{
+  "mcpServers": {
+    "skillful": {
+      "command": "skillful-mcp",
+      "args": ["--config", "/path/to/mcp.json"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><strong>Codex CLI</strong> (<code>~/.codex/config.toml</code>)</summary>
+
+```toml
+[mcp_servers.skillful]
+command = "skillful-mcp"
+args = ["--config", "/path/to/mcp.json"]
+```
+</details>
+
+Any MCP-compatible client works — just point it at the `skillful-mcp` binary.
+
+### Advanced example: GitHub MCP Server
+
+The [GitHub MCP server](https://github.com/github/github-mcp-server) exposes
+19+ toolsets — a perfect candidate for skill decomposition. Instead of one
+massive server, split it into focused skills by feature group:
+
+```json
+{
+  "mcpServers": {
+    "github-issues": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "description": "Create, search, and manage GitHub issues. Use when filing bugs, triaging issues, or adding comments to existing issues."
+    },
+    "github-labels": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "description": "Create and manage issue labels. Use when categorizing issues, adding or removing labels, or organizing triage workflows."
+    },
+    "github-prs": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "description": "Review, merge, and manage pull requests. Use when reviewing code, checking PR status, or merging approved changes."
+    },
+    "github-actions": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "description": "Trigger, monitor, and debug GitHub Actions workflows. Use when running CI, checking build status, or investigating failed workflows."
+    }
+  }
+}
+```
+
+The agent sees three skills instead of 40+ tools. It calls `use_skill` only
+when it needs a specific capability, keeping the context window lean.
+
+## Configuration
+
 Each entry in `mcpServers` is a downstream server that becomes a skill. The key
-is the skill name. The value depends on the transport type:
+is the skill name. The value depends on the transport type.
 
 ### Common options
 
 All server types support these optional fields:
 
-| Field | Description |
-|-------|-------------|
-| `description` | Override the server's instructions shown by `list_skills` |
-| `allowedTools` | Only expose these tool names (default: all) |
-| `allowedResources` | Only expose these resource URIs (default: all) |
+| Field              | Description                                               |
+|--------------------|-----------------------------------------------------------|
+| `description`      | Override the server's instructions shown by `list_skills`  |
+| `allowedTools`     | Only expose these tool names (default: all)                |
+| `allowedResources` | Only expose these resource URIs (default: all)             |
 
 Excluded tools are invisible everywhere — they won't appear in `use_skill`,
 can't be called via `execute_code`, and won't cause name-conflict prefixing.
@@ -96,22 +231,21 @@ can't be called via `execute_code`, and won't cause name-conflict prefixing.
 Spawns the server as a child process. Only env vars explicitly listed in `env`
 are passed to the child — the parent environment is not inherited.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `command` | yes | Executable to run |
-| `args` | no | Arguments array |
-| `env` | no | Environment variables for the child process |
+| Field     | Required | Description                             |
+|-----------|----------|-----------------------------------------|
+| `command` | yes      | Executable to run                       |
+| `args`    | no       | Arguments array                         |
+| `env`     | no       | Environment variables for the child process |
 
 ```json
 {
   "mcpServers": {
     "database": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sqlite", "mydb.db"],
-      "description": "SQL database for customer analytics",
-      "allowedTools": ["execute_sql", "list_tables"],
+      "args": ["-y", "@toolbox-sdk/server", "--prebuilt=postgres"],
+      "description": "Various tools for interacting with Postgres databases",
       "env": {
-        "PATH": "/usr/local/bin:/usr/bin"
+        "TOOLBOX_POSTGRES_CONNSTRING": "${DATABASE_URL}"
       }
     }
   }
@@ -122,11 +256,11 @@ are passed to the child — the parent environment is not inherited.
 
 Connects via Streamable HTTP.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `type` | yes | Must be `"http"` |
-| `url` | yes | Server endpoint URL |
-| `headers` | no | HTTP headers (e.g. auth tokens) |
+| Field     | Required | Description                     |
+|-----------|----------|---------------------------------|
+| `type`    | yes      | Must be `"http"`                |
+| `url`     | yes      | Server endpoint URL             |
+| `headers` | no       | HTTP headers (e.g. auth tokens) |
 
 ```json
 {
@@ -146,68 +280,27 @@ Connects via Streamable HTTP.
 
 Connects via Server-Sent Events.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `type` | yes | Must be `"sse"` |
-| `url` | yes | SSE endpoint URL |
-| `headers` | no | HTTP headers |
+| Field     | Required | Description      |
+|-----------|----------|------------------|
+| `type`    | yes      | Must be `"sse"`  |
+| `url`     | yes      | SSE endpoint URL |
+| `headers` | no       | HTTP headers     |
 
-## Running
-
-### Build and run
-
-```sh
-go build -o skillful-mcp .
-./skillful-mcp --config mcp.json
-```
-
-### Run directly
-
-```sh
-go run . --config mcp.json
-go run . --config mcp.json --transport http --port 8080
 ### Flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--config` | `./mcp.json` | Path to the config file |
-| `--transport` | `stdio` | Upstream transport: `stdio` or `http` |
-| `--host` | `localhost` | HTTP listen host |
-| `--port` | `8080` | HTTP listen port |
-| `--version` | | Print version and exit |
+| Flag            | Default      | Description                           |
+|-----------------|--------------|---------------------------------------|
+| `--config`      | `./mcp.json` | Path to the config file               |
+| `--transport`   | `stdio`      | Upstream transport: `stdio` or `http` |
+| `--host`        | `localhost`  | HTTP listen host                      |
+| `--port`        | `8080`       | HTTP listen port                      |
+| `--version`     |              | Print version and exit                |
 
-### Use with MCP clients
+## Contributing
 
-**Gemini CLI** (`~/.gemini/settings.json`):
-
-```json
-{
-  "mcpServers": {
-    "skillful": {
-      "command": "./skillful-mcp",
-      "args": ["--config", "/path/to/mcp.json"]
-    }
-  }
-}
+```sh
+go test ./...
 ```
 
-**Claude Code** (`.claude/settings.json`):
-
-```json
-{
-  "mcpServers": {
-    "skillful": {
-      "command": "./skillful-mcp",
-      "args": ["--config", "/path/to/mcp.json"]
-    }
-  }
-}
-```
-
-**Codex CLI** (`~/.codex/config.toml`):
-
-```toml
-[mcp_servers.skillful]
-command = "./skillful-mcp"
-args = ["--config", "/path/to/mcp.json"]
-```
+Issues and pull requests are welcome on
+[GitHub](https://github.com/kurtisvg/skillful-mcp/issues).

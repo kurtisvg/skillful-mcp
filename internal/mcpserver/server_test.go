@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"skillful-mcp/internal/config"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -60,7 +62,7 @@ func TestServerCallTool(t *testing.T) {
 	}
 }
 
-func TestServerListResources(t *testing.T) {
+func TestServerResources(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
@@ -86,12 +88,9 @@ func TestServerListResources(t *testing.T) {
 	}
 	defer s.Close()
 
-	result, err := s.ListResources(ctx, nil)
-	if err != nil {
-		t.Fatalf("ListResources error: %v", err)
-	}
-	if len(result.Resources) != 1 || result.Resources[0].URI != "test://r" {
-		t.Errorf("expected [test://r], got %v", result.Resources)
+	resources := s.Resources()
+	if len(resources) != 1 || resources[0].URI != "test://r" {
+		t.Errorf("expected [test://r], got %v", resources)
 	}
 }
 
@@ -161,4 +160,136 @@ func TestServerInstructions(t *testing.T) {
 			t.Errorf("Instructions() = %q, want empty", s.Instructions())
 		}
 	})
+}
+
+// startFakeServerMultiTool creates an in-memory MCP server with multiple tools
+// and resources, connects a client, and returns the session.
+func startFakeServerMultiTool(t *testing.T, ctx context.Context, toolNames []string, resourceURIs []string) *mcp.ClientSession {
+	t.Helper()
+
+	srv := mcp.NewServer(&mcp.Implementation{Name: "fake-server"}, &mcp.ServerOptions{
+		Instructions: "original instructions",
+	})
+	for _, name := range toolNames {
+		mcp.AddTool(srv, &mcp.Tool{
+			Name:        name,
+			Description: "tool " + name,
+		}, func(ctx context.Context, req *mcp.CallToolRequest, input struct{}) (*mcp.CallToolResult, any, error) {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: "ok"}},
+			}, nil, nil
+		})
+	}
+	for _, uri := range resourceURIs {
+		srv.AddResource(&mcp.Resource{URI: uri, Name: uri}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+			return &mcp.ReadResourceResult{
+				Contents: []*mcp.ResourceContents{{URI: uri, Text: "content"}},
+			}, nil
+		})
+	}
+
+	serverT, clientT := mcp.NewInMemoryTransports()
+	go func() { _ = srv.Run(ctx, serverT) }()
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "test-client"}, nil)
+	session, err := client.Connect(ctx, clientT, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return session
+}
+
+func TestServerOptionsDescription(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	session := startFakeServerMultiTool(t, ctx, []string{"tool_a"}, nil)
+	s, err := NewServerFromSession(ctx, session, config.ServerOptions{
+		Description: "custom description",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	if s.Instructions() != "custom description" {
+		t.Errorf("Instructions() = %q, want 'custom description'", s.Instructions())
+	}
+}
+
+func TestServerOptionsAllowedTools(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	session := startFakeServerMultiTool(t, ctx, []string{"tool_a", "tool_b", "tool_c"}, nil)
+	s, err := NewServerFromSession(ctx, session, config.ServerOptions{
+		AllowedTools: []string{"tool_a", "tool_c"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	if len(s.tools) != 2 {
+		t.Fatalf("expected 2 tools, got %d", len(s.tools))
+	}
+	names := map[string]bool{}
+	for _, tool := range s.tools {
+		names[tool.Name] = true
+	}
+	if !names["tool_a"] || !names["tool_c"] {
+		t.Errorf("expected tool_a and tool_c, got %v", names)
+	}
+	if names["tool_b"] {
+		t.Error("tool_b should be filtered out")
+	}
+}
+
+func TestServerOptionsAllowedResources(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	session := startFakeServerMultiTool(t, ctx, []string{"tool_a"}, []string{"test://a", "test://b", "test://c"})
+	s, err := NewServerFromSession(ctx, session, config.ServerOptions{
+		AllowedResources: []string{"test://a", "test://c"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	resources := s.Resources()
+	if len(resources) != 2 {
+		t.Fatalf("expected 2 resources, got %d", len(resources))
+	}
+	uris := map[string]bool{}
+	for _, r := range resources {
+		uris[r.URI] = true
+	}
+	if !uris["test://a"] || !uris["test://c"] {
+		t.Errorf("expected test://a and test://c, got %v", uris)
+	}
+	if uris["test://b"] {
+		t.Error("test://b should be filtered out")
+	}
+}
+
+func TestServerOptionsNoFilter(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	session := startFakeServerMultiTool(t, ctx, []string{"tool_a", "tool_b"}, []string{"test://r"})
+	s, err := NewServerFromSession(ctx, session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	// No options — all tools and resources should be present.
+	if len(s.tools) != 2 {
+		t.Errorf("expected 2 tools, got %d", len(s.tools))
+	}
+	if len(s.Resources()) != 1 {
+		t.Errorf("expected 1 resource, got %d", len(s.Resources()))
+	}
 }

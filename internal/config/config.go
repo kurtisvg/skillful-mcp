@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,52 +16,161 @@ const (
 	TransportSSE   TransportType = "sse"
 )
 
-type Config struct {
-	MCPServers map[string]ServerConfig `json:"mcpServers"`
+// Server is the common interface for all server transport configurations.
+type Server interface {
+	TransportType() TransportType
 }
 
-type ServerConfig struct {
-	Type    string            `json:"type,omitempty"`
-	Command string            `json:"command,omitempty"`
-	Args    []string          `json:"args,omitempty"`
-	Env     map[string]string `json:"env,omitempty"`
-	URL     string            `json:"url,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-}
-
-func (s *ServerConfig) TransportType() (TransportType, error) {
-	switch s.Type {
-	case "", "stdio":
-		return TransportSTDIO, nil
-	case "http":
-		return TransportHTTP, nil
-	case "sse":
-		return TransportSSE, nil
-	default:
-		return "", fmt.Errorf("unknown transport type: %q", s.Type)
-	}
-}
-
-func Load(path string) (*Config, error) {
+func Load(path string) (map[string]Server, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
 
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	var raw struct {
+		MCPServers map[string]json.RawMessage `json:"mcpServers"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("parsing config file: %w", err)
 	}
 
-	if err := cfg.expandEnvVars(); err != nil {
+	servers := make(map[string]Server, len(raw.MCPServers))
+	for name, rawSrv := range raw.MCPServers {
+		expanded, err := expandRawJSON(rawSrv)
+		if err != nil {
+			return nil, fmt.Errorf("server %q: %w", name, err)
+		}
+
+		srv, err := unmarshalServer(expanded)
+		if err != nil {
+			return nil, fmt.Errorf("server %q: %w", name, err)
+		}
+		servers[name] = srv
+	}
+	return servers, nil
+}
+
+func unmarshalServer(data []byte) (Server, error) {
+	var probe struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
 		return nil, err
 	}
 
-	return &cfg, nil
+	switch probe.Type {
+	case "", "stdio":
+		var s StdioServer
+		if err := unmarshalStrict(data, &s); err != nil {
+			return nil, err
+		}
+		if s.Command == "" {
+			return nil, fmt.Errorf("stdio transport requires 'command'")
+		}
+		return &s, nil
+	case "http":
+		var h HTTPServer
+		if err := unmarshalStrict(data, &h); err != nil {
+			return nil, err
+		}
+		if h.URL == "" {
+			return nil, fmt.Errorf("http transport requires 'url'")
+		}
+		return &h, nil
+	case "sse":
+		var s SSEServer
+		if err := unmarshalStrict(data, &s); err != nil {
+			return nil, err
+		}
+		if s.URL == "" {
+			return nil, fmt.Errorf("sse transport requires 'url'")
+		}
+		return &s, nil
+	default:
+		return nil, fmt.Errorf("unknown transport type: %q", probe.Type)
+	}
 }
+
+func unmarshalStrict(data []byte, v any) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	return dec.Decode(v)
+}
+
+// Server types
+
+type StdioServer struct {
+	Type    string            `json:"type"`
+	Command string            `json:"command"`
+	Args    []string          `json:"args,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+}
+
+func (*StdioServer) TransportType() TransportType { return TransportSTDIO }
+
+type HTTPServer struct {
+	Type    string            `json:"type"`
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+func (*HTTPServer) TransportType() TransportType { return TransportHTTP }
+
+type SSEServer struct {
+	Type    string            `json:"type"`
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+func (*SSEServer) TransportType() TransportType { return TransportSSE }
+
+// Env var expansion
 
 // envVarPattern matches ${VAR} references in config values.
 var envVarPattern = regexp.MustCompile(`\$\{([^}]+)\}`)
+
+// expandRawJSON expands ${VAR} references in all string values of a raw JSON
+// object. It unmarshals to map[string]any, walks all strings, and re-marshals
+// to preserve JSON validity (handling special characters in expanded values).
+func expandRawJSON(data json.RawMessage) (json.RawMessage, error) {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	if err := expandMap(raw); err != nil {
+		return nil, err
+	}
+	return json.Marshal(raw)
+}
+
+// expandMap recursively expands ${VAR} references in all string values.
+func expandMap(m map[string]any) error {
+	for k, val := range m {
+		switch v := val.(type) {
+		case string:
+			expanded, err := expandString(v)
+			if err != nil {
+				return fmt.Errorf("%s: %w", k, err)
+			}
+			m[k] = expanded
+		case map[string]any:
+			if err := expandMap(v); err != nil {
+				return fmt.Errorf("%s: %w", k, err)
+			}
+		case []any:
+			for i, item := range v {
+				if s, ok := item.(string); ok {
+					expanded, err := expandString(s)
+					if err != nil {
+						return fmt.Errorf("%s[%d]: %w", k, i, err)
+					}
+					v[i] = expanded
+				}
+			}
+		}
+	}
+	return nil
+}
 
 // expandString replaces all ${VAR} references with their environment variable
 // values. Returns an error if a referenced variable is not set.
@@ -79,62 +189,4 @@ func expandString(s string) (string, error) {
 		return "", expandErr
 	}
 	return result, nil
-}
-
-// expandStringMap expands env vars in all values of a map.
-func expandStringMap(m map[string]string) error {
-	for k, v := range m {
-		expanded, err := expandString(v)
-		if err != nil {
-			return err
-		}
-		m[k] = expanded
-	}
-	return nil
-}
-
-// expandEnvVars expands ${VAR} references across all string fields in the config.
-func (c *Config) expandEnvVars() error {
-	for name, srv := range c.MCPServers {
-		var err error
-		if srv.Command, err = expandString(srv.Command); err != nil {
-			return fmt.Errorf("server %q command: %w", name, err)
-		}
-		if srv.URL, err = expandString(srv.URL); err != nil {
-			return fmt.Errorf("server %q url: %w", name, err)
-		}
-		for i, arg := range srv.Args {
-			if srv.Args[i], err = expandString(arg); err != nil {
-				return fmt.Errorf("server %q args[%d]: %w", name, i, err)
-			}
-		}
-		if err := expandStringMap(srv.Env); err != nil {
-			return fmt.Errorf("server %q env: %w", name, err)
-		}
-		if err := expandStringMap(srv.Headers); err != nil {
-			return fmt.Errorf("server %q headers: %w", name, err)
-		}
-		c.MCPServers[name] = srv
-	}
-	return nil
-}
-
-func (c *Config) Validate() error {
-	for name, srv := range c.MCPServers {
-		tt, err := srv.TransportType()
-		if err != nil {
-			return fmt.Errorf("server %q: %w", name, err)
-		}
-		switch tt {
-		case TransportSTDIO:
-			if srv.Command == "" {
-				return fmt.Errorf("server %q: STDIO transport requires 'command'", name)
-			}
-		case TransportHTTP, TransportSSE:
-			if srv.URL == "" {
-				return fmt.Errorf("server %q: %s transport requires 'url'", name, tt)
-			}
-		}
-	}
-	return nil
 }

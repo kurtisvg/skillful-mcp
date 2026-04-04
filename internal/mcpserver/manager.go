@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sort"
 
 	"skillful-mcp/internal/config"
 )
@@ -14,19 +13,18 @@ type Manager struct {
 }
 
 // NewManager creates a Manager by connecting to all servers in the config.
-func NewManager(ctx context.Context, cfg *config.Config) (*Manager, error) {
+func NewManager(ctx context.Context, cfgServers map[string]config.Server) (*Manager, error) {
 	m := &Manager{servers: make(map[string]*Server)}
 
-	for name, srv := range cfg.MCPServers {
-		s, err := NewServer(ctx, &srv)
+	for name, srv := range cfgServers {
+		s, err := NewServer(ctx, srv)
 		if err != nil {
 			// Close any servers we already opened before returning.
 			m.Close()
 			return nil, fmt.Errorf("connecting to %q: %w", name, err)
 		}
 		m.servers[name] = s
-		tt, _ := srv.TransportType() // already validated
-		slog.Info("connected to server", "skill", name, "transport", tt)
+		slog.Info("connected to server", "skill", name)
 	}
 
 	return m, nil
@@ -50,7 +48,6 @@ func (m *Manager) ListServerNames() []string {
 	for name := range m.servers {
 		names = append(names, name)
 	}
-	sort.Strings(names)
 	return names
 }
 

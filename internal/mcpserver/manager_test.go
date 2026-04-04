@@ -35,7 +35,7 @@ func TestGetServer(t *testing.T) {
 func TestListServerNames(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sorted", func(t *testing.T) {
+	t.Run("returns all names", func(t *testing.T) {
 		t.Parallel()
 		m := NewManagerFromServers(map[string]*Server{
 			"charlie": {},
@@ -44,13 +44,16 @@ func TestListServerNames(t *testing.T) {
 		})
 
 		names := m.ListServerNames()
-		expected := []string{"alpha", "bravo", "charlie"}
-		if len(names) != len(expected) {
-			t.Fatalf("got %d names, want %d", len(names), len(expected))
+		if len(names) != 3 {
+			t.Fatalf("got %d names, want 3", len(names))
 		}
-		for i, name := range names {
-			if name != expected[i] {
-				t.Errorf("names[%d] = %q, want %q", i, name, expected[i])
+		nameSet := map[string]bool{}
+		for _, n := range names {
+			nameSet[n] = true
+		}
+		for _, expected := range []string{"alpha", "bravo", "charlie"} {
+			if !nameSet[expected] {
+				t.Errorf("missing expected name %q", expected)
 			}
 		}
 	})

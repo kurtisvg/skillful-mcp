@@ -30,29 +30,27 @@ func init() {
 func Execute() {
 	flag.Parse()
 
-	cfg, err := config.Load(configPath)
+	servers, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	if err := cfg.Validate(); err != nil {
-		log.Fatalf("Invalid config: %v", err)
-	}
 
-	fmt.Fprintf(os.Stderr, "Loaded %d server(s):\n", len(cfg.MCPServers))
-	for name, srv := range cfg.MCPServers {
-		tt, _ := srv.TransportType() // already validated
-		switch tt {
-		case config.TransportSTDIO:
-			fmt.Fprintf(os.Stderr, "  [%s] %s → %s %v\n", name, tt, srv.Command, srv.Args)
-		case config.TransportHTTP, config.TransportSSE:
-			fmt.Fprintf(os.Stderr, "  [%s] %s → %s\n", name, tt, srv.URL)
+	fmt.Fprintf(os.Stderr, "Loaded %d server(s):\n", len(servers))
+	for name, srv := range servers {
+		switch s := srv.(type) {
+		case *config.StdioServer:
+			fmt.Fprintf(os.Stderr, "  [%s] stdio → %s %v\n", name, s.Command, s.Args)
+		case *config.HTTPServer:
+			fmt.Fprintf(os.Stderr, "  [%s] http → %s\n", name, s.URL)
+		case *config.SSEServer:
+			fmt.Fprintf(os.Stderr, "  [%s] sse → %s\n", name, s.URL)
 		}
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	mgr, err := mcpserver.NewManager(ctx, cfg)
+	mgr, err := mcpserver.NewManager(ctx, servers)
 	if err != nil {
 		log.Fatalf("Failed to connect to servers: %v", err)
 	}

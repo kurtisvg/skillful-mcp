@@ -6,15 +6,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Suffering from tool bloat? Need progressive disclosure for your MCP servers?
-Sounds like a Skill Issue ;)
+Sounds like a Skill Issue 😉
 
 **skillful-mcp** eliminates tool bloat by turning your MCP servers into MCP-native Agent Skills.
+
+- 🔍 **Progressive disclosure** — agents see 4 tools, not 80
+- ⚡ **Code mode** — orchestrate multiple tools in a single Python round-trip
+- 📄 **Standard config** — uses the same `mcp.json` as Claude Code / Claude Desktop
+- 🔌 **Any transport** — stdio, HTTP, SSE
 
 ## Table of contents
 
 - [Why?](#why)
 - [How it works](#how-it-works)
-- [Quick start](#quick-start)
+- [Getting started](#getting-started)
 - [Configuration](#configuration)
 - [Contributing](#contributing)
 
@@ -73,7 +78,7 @@ arguments. If two skills define a tool with the same name, the function is
 prefixed with the skill name (e.g. `database_search`, `docs_search`). Tool
 names returned by `use_skill` always match the function names in `execute_code`.
 
-## Quick start
+## Getting started
 
 ### Install
 
@@ -119,7 +124,7 @@ skillful-mcp --config mcp.json --transport http --port 8080
 ### Connect to your agent
 
 <details>
-<summary><strong>Claude Code</strong> (<code>.claude/settings.json</code>)</summary>
+<summary><strong>Gemini CLI</strong> (<code>~/.gemini/settings.json</code>)</summary>
 
 ```json
 {
@@ -134,7 +139,7 @@ skillful-mcp --config mcp.json --transport http --port 8080
 </details>
 
 <details>
-<summary><strong>Gemini CLI</strong> (<code>~/.gemini/settings.json</code>)</summary>
+<summary><strong>Claude Code</strong> (<code>.claude/settings.json</code>)</summary>
 
 ```json
 {

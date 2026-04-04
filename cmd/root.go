@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 
@@ -35,15 +35,15 @@ func Execute() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Loaded %d server(s):\n", len(servers))
+	slog.Info("loaded config", "servers", len(servers))
 	for name, srv := range servers {
 		switch s := srv.(type) {
 		case *config.StdioServer:
-			fmt.Fprintf(os.Stderr, "  [%s] stdio → %s %v\n", name, s.Command, s.Args)
+			slog.Info("configured server", "name", name, "transport", "stdio", "command", s.Command, "args", s.Args)
 		case *config.HTTPServer:
-			fmt.Fprintf(os.Stderr, "  [%s] http → %s\n", name, s.URL)
+			slog.Info("configured server", "name", name, "transport", "http", "url", s.URL)
 		case *config.SSEServer:
-			fmt.Fprintf(os.Stderr, "  [%s] sse → %s\n", name, s.URL)
+			slog.Info("configured server", "name", name, "transport", "sse", "url", s.URL)
 		}
 	}
 
@@ -56,7 +56,7 @@ func Execute() {
 	}
 	defer mgr.Close()
 
-	fmt.Fprintf(os.Stderr, "Connected to %d skill(s): %v\n", len(mgr.ListServerNames()), mgr.ListServerNames())
+	slog.Info("connected to skills", "skills", mgr.ListServerNames())
 
 	s := server.NewServer(mgr)
 	if err := server.Serve(ctx, s, transport, host, port); err != nil {

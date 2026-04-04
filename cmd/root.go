@@ -3,14 +3,13 @@ package cmd
 import (
 	"context"
 	"flag"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
 
+	"skillful-mcp/internal/app"
 	"skillful-mcp/internal/config"
 	"skillful-mcp/internal/mcpserver"
-	"skillful-mcp/internal/server"
 )
 
 var (
@@ -32,7 +31,8 @@ func Execute() {
 
 	servers, err := config.Load(configPath)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
 	slog.Info("loaded config", "servers", len(servers))
@@ -52,14 +52,26 @@ func Execute() {
 
 	mgr, err := mcpserver.NewManager(ctx, servers)
 	if err != nil {
-		log.Fatalf("Failed to connect to servers: %v", err)
+		slog.Error("failed to connect to servers", "error", err)
+		os.Exit(1)
 	}
 	defer mgr.Close()
 
 	slog.Info("connected to skills", "skills", mgr.ListServerNames())
 
-	s := server.NewServer(mgr)
-	if err := server.Serve(ctx, s, transport, host, port); err != nil {
-		log.Fatalf("Server error: %v", err)
+	s := app.NewServer(mgr)
+	var serveErr error
+	switch transport {
+	case "stdio":
+		serveErr = app.ServeStdio(ctx, s)
+	case "http":
+		serveErr = app.ServeHTTP(ctx, s, host, port)
+	default:
+		slog.Error("unknown transport (use 'stdio' or 'http')", "transport", transport)
+		os.Exit(1)
+	}
+	if serveErr != nil {
+		slog.Error("server error", "error", serveErr)
+		os.Exit(1)
 	}
 }

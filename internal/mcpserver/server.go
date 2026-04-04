@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"skillful-mcp/internal/config"
+	"skillful-mcp/internal/version"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -20,7 +21,7 @@ type Server struct {
 func NewServer(ctx context.Context, srv config.Server) (*Server, error) {
 	client := mcp.NewClient(&mcp.Implementation{
 		Name:    "skillful-mcp",
-		Version: "0.1.0",
+		Version: version.Version,
 	}, nil)
 
 	var transport mcp.Transport

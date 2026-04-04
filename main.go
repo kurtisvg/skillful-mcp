@@ -1,6 +1,6 @@
 package main
 
-import "skillful-mcp/cmd"
+import "github.com/kurtisvg/skillful-mcp/cmd"
 
 func main() {
 	cmd.Execute()

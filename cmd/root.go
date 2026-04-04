@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"skillful-mcp/internal/app"
-	"skillful-mcp/internal/config"
-	"skillful-mcp/internal/mcpserver"
-	"skillful-mcp/internal/version"
+	"github.com/kurtisvg/skillful-mcp/internal/app"
+	"github.com/kurtisvg/skillful-mcp/internal/config"
+	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
+	"github.com/kurtisvg/skillful-mcp/internal/version"
 )
 
 type options struct {

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"skillful-mcp/internal/mcpserver"
-	"skillful-mcp/internal/tools"
-	"skillful-mcp/internal/version"
+	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
+	"github.com/kurtisvg/skillful-mcp/internal/tools"
+	"github.com/kurtisvg/skillful-mcp/internal/version"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

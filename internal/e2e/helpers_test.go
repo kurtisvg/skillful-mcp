@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"skillful-mcp/internal/app"
-	"skillful-mcp/internal/mcpserver"
+	"github.com/kurtisvg/skillful-mcp/internal/app"
+	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

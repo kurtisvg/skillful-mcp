@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os/exec"
 
-	"skillful-mcp/internal/config"
-	"skillful-mcp/internal/version"
+	"github.com/kurtisvg/skillful-mcp/internal/config"
+	"github.com/kurtisvg/skillful-mcp/internal/version"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"skillful-mcp/internal/mcpserver"
+	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

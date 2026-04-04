@@ -93,11 +93,9 @@ func NewServerFromSession(ctx context.Context, session *mcp.ClientSession) (*Ser
 
 // toEnv converts the configured env map to a slice for exec.Cmd.
 // Only the explicitly specified vars are passed to the child process.
-// If no env vars are configured, returns nil (child inherits nothing).
+// Returns an empty slice (not nil) when no vars are configured, so
+// the child gets a clean environment rather than inheriting the parent's.
 func toEnv(env map[string]string) []string {
-	if len(env) == 0 {
-		return nil
-	}
 	result := make([]string, 0, len(env))
 	for k, v := range env {
 		result = append(result, k+"="+v)
@@ -112,6 +110,7 @@ type headerTransport struct {
 }
 
 func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
 	for k, v := range t.headers {
 		req.Header.Set(k, v)
 	}

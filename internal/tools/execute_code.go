@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"skillful-mcp/internal/mcpserver"
@@ -39,7 +40,7 @@ func newExecuteCode(mgr *mcpserver.Manager) func(context.Context, *mcp.CallToolR
 	return func(ctx context.Context, req *mcp.CallToolRequest, input executeCodeInput) (*mcp.CallToolResult, any, error) {
 		if input.Code == "" {
 			result := &mcp.CallToolResult{}
-			result.SetError(fmt.Errorf("code must not be empty"))
+			result.SetError(errors.New("code must not be empty"))
 			return result, nil, nil
 		}
 

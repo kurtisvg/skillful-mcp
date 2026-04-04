@@ -181,7 +181,6 @@ func TestToolSignatureWithParams(t *testing.T) {
 	tool := Tool{
 		ResolvedName: "execute_sql",
 		Description:  "Run a SQL query",
-		ReturnType:   "str",
 		Params: []ParamInfo{
 			{Name: "sql", Types: []string{"string"}, Required: true},
 			{Name: "limit", Types: []string{"integer"}, Required: false},
@@ -198,7 +197,6 @@ func TestToolSignatureNoParams(t *testing.T) {
 	tool := Tool{
 		ResolvedName: "list_tables",
 		Description:  "List database tables",
-		ReturnType:   "str",
 	}
 	want := "list_tables() -> str\n  List database tables"
 	if got := tool.Signature(); got != want {
@@ -210,7 +208,6 @@ func TestToolSignatureNoDescription(t *testing.T) {
 	t.Parallel()
 	tool := Tool{
 		ResolvedName: "ping",
-		ReturnType:   "str",
 		Params: []ParamInfo{
 			{Name: "host", Types: []string{"string"}, Required: true},
 		},
@@ -218,55 +215,6 @@ func TestToolSignatureNoDescription(t *testing.T) {
 	want := "ping(host: str) -> str"
 	if got := tool.Signature(); got != want {
 		t.Errorf("Signature() = %q, want %q", got, want)
-	}
-}
-
-func TestToolSignatureWithOutputSchema(t *testing.T) {
-	t.Parallel()
-	tool := Tool{
-		ResolvedName: "get_weather",
-		Description:  "Get weather data",
-		ReturnType:   "dict",
-		Params: []ParamInfo{
-			{Name: "location", Types: []string{"string"}, Required: true},
-		},
-	}
-	want := "get_weather(location: str) -> dict\n  Get weather data"
-	if got := tool.Signature(); got != want {
-		t.Errorf("Signature() = %q, want %q", got, want)
-	}
-}
-
-// --- extractReturnType tests ---
-
-func TestExtractReturnTypeNilSchema(t *testing.T) {
-	t.Parallel()
-	if got := extractReturnType(nil); got != "str" {
-		t.Errorf("extractReturnType(nil) = %q, want %q", got, "str")
-	}
-}
-
-func TestExtractReturnTypeObjectSchema(t *testing.T) {
-	t.Parallel()
-	schema := map[string]any{"type": "object", "properties": map[string]any{}}
-	if got := extractReturnType(schema); got != "dict" {
-		t.Errorf("extractReturnType(object) = %q, want %q", got, "dict")
-	}
-}
-
-func TestExtractReturnTypeArraySchema(t *testing.T) {
-	t.Parallel()
-	schema := map[string]any{"type": "array", "items": map[string]any{"type": "string"}}
-	if got := extractReturnType(schema); got != "list" {
-		t.Errorf("extractReturnType(array) = %q, want %q", got, "list")
-	}
-}
-
-func TestExtractReturnTypeStringSchema(t *testing.T) {
-	t.Parallel()
-	schema := map[string]any{"type": "string"}
-	if got := extractReturnType(schema); got != "str" {
-		t.Errorf("extractReturnType(string) = %q, want %q", got, "str")
 	}
 }
 

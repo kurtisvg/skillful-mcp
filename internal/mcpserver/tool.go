@@ -15,7 +15,6 @@ type Tool struct {
 	SkillName    string
 	Description  string
 	Params       []ParamInfo
-	ReturnType   string // Python type annotation, e.g. "str" or "dict"
 }
 
 // ParamInfo describes a parameter extracted from a tool's JSON Schema.
@@ -37,7 +36,7 @@ func (t *Tool) Signature() string {
 		parts = append(parts, part)
 	}
 
-	sig := fmt.Sprintf("%s(%s) -> %s", t.ResolvedName, strings.Join(parts, ", "), t.ReturnType)
+	sig := fmt.Sprintf("%s(%s) -> str", t.ResolvedName, strings.Join(parts, ", "))
 	if t.Description != "" {
 		sig += "\n  " + t.Description
 	}
@@ -55,22 +54,7 @@ func newTool(resolvedName, originalName, skillName string, tool *mcp.Tool) (Tool
 		SkillName:    skillName,
 		Description:  tool.Description,
 		Params:       params,
-		ReturnType:   extractReturnType(tool.OutputSchema),
 	}, nil
-}
-
-// extractReturnType derives a Python type annotation from a tool's OutputSchema.
-// Returns "str" when no output schema is defined (unstructured text content).
-func extractReturnType(schema any) string {
-	m, ok := schema.(map[string]any)
-	if !ok {
-		return "str"
-	}
-	t, ok := m["type"].(string)
-	if !ok {
-		return "str"
-	}
-	return jsonSchemaToPython([]string{t})
 }
 
 // extractParamSchema extracts ordered parameter definitions from a JSON Schema.

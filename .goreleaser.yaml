@@ -1,0 +1,30 @@
+version: 2
+
+builds:
+  - main: .
+    binary: skillful-mcp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats:
+      - binary
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  use_existing_draft: true
+  mode: keep-existing
+
+changelog:
+  disable: true

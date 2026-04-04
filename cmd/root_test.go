@@ -1,34 +1,58 @@
 package cmd
 
 import (
-	"flag"
-	"os"
 	"testing"
 )
 
-func TestDefaultConfigFlag(t *testing.T) {
-	// Reset flags for test isolation
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	configPath = ""
-	flag.StringVar(&configPath, "config", "./mcp.json", "Path to MCP config file")
-	if err := flag.CommandLine.Parse([]string{}); err != nil {
-		t.Fatal(err)
-	}
+func TestDefaultFlags(t *testing.T) {
+	t.Parallel()
+	opts := parseFlags([]string{})
 
-	if configPath != "./mcp.json" {
-		t.Errorf("expected default config path './mcp.json', got %q", configPath)
+	if opts.configPath != "./mcp.json" {
+		t.Errorf("configPath = %q, want './mcp.json'", opts.configPath)
+	}
+	if opts.transport != "stdio" {
+		t.Errorf("transport = %q, want 'stdio'", opts.transport)
+	}
+	if opts.host != "localhost" {
+		t.Errorf("host = %q, want 'localhost'", opts.host)
+	}
+	if opts.port != "8080" {
+		t.Errorf("port = %q, want '8080'", opts.port)
+	}
+	if opts.version {
+		t.Error("version = true, want false")
 	}
 }
 
-func TestCustomConfigFlag(t *testing.T) {
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	configPath = ""
-	flag.StringVar(&configPath, "config", "./mcp.json", "Path to MCP config file")
-	if err := flag.CommandLine.Parse([]string{"--config", "/tmp/custom.json"}); err != nil {
-		t.Fatal(err)
-	}
+func TestCustomFlags(t *testing.T) {
+	t.Parallel()
+	opts := parseFlags([]string{
+		"--config", "/tmp/custom.json",
+		"--transport", "http",
+		"--host", "0.0.0.0",
+		"--port", "9090",
+	})
 
-	if configPath != "/tmp/custom.json" {
-		t.Errorf("expected config path '/tmp/custom.json', got %q", configPath)
+	if opts.configPath != "/tmp/custom.json" {
+		t.Errorf("configPath = %q, want '/tmp/custom.json'", opts.configPath)
+	}
+	if opts.transport != "http" {
+		t.Errorf("transport = %q, want 'http'", opts.transport)
+	}
+	if opts.host != "0.0.0.0" {
+		t.Errorf("host = %q, want '0.0.0.0'", opts.host)
+	}
+	if opts.port != "9090" {
+		t.Errorf("port = %q, want '9090'", opts.port)
+	}
+}
+
+func TestVersionFlag(t *testing.T) {
+	t.Parallel()
+	opts := parseFlags([]string{"--version"})
+
+	if !opts.version {
+		t.Error("version = false, want true")
 	}
 }

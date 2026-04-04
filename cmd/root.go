@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -11,26 +12,43 @@ import (
 	"skillful-mcp/internal/app"
 	"skillful-mcp/internal/config"
 	"skillful-mcp/internal/mcpserver"
+	"skillful-mcp/internal/version"
 )
 
-var (
+type options struct {
 	configPath string
 	transport  string
 	host       string
 	port       string
-)
+	version    bool
+}
 
-func init() {
-	flag.StringVar(&configPath, "config", "./mcp.json", "Path to MCP config file")
-	flag.StringVar(&transport, "transport", "stdio", "Upstream transport: stdio or http")
-	flag.StringVar(&host, "host", "localhost", "HTTP host (when transport=http)")
-	flag.StringVar(&port, "port", "8080", "HTTP port (when transport=http)")
+func parseFlags(args []string) options {
+	var opts options
+	fs := flag.NewFlagSet("skillful-mcp", flag.ExitOnError)
+	fs.StringVar(&opts.configPath, "config", "./mcp.json", "Path to MCP config file")
+	fs.StringVar(&opts.transport, "transport", "stdio", "Upstream transport: stdio or http")
+	fs.StringVar(&opts.host, "host", "localhost", "HTTP host (when transport=http)")
+	fs.StringVar(&opts.port, "port", "8080", "HTTP port (when transport=http)")
+	fs.BoolVar(&opts.version, "version", false, "Print version and exit")
+	if err := fs.Parse(args); err != nil {
+		os.Exit(1)
+	}
+	return opts
 }
 
 func Execute() {
-	flag.Parse()
+	opts := parseFlags(os.Args[1:])
 
-	servers, err := config.Load(configPath)
+	if opts.version {
+		fmt.Println(version.Version)
+		return
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	servers, err := config.Load(opts.configPath)
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
@@ -48,9 +66,6 @@ func Execute() {
 		}
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
 	mgr, err := mcpserver.NewManager(ctx, servers)
 	if err != nil {
 		slog.Error("failed to connect to servers", "error", err)
@@ -58,17 +73,17 @@ func Execute() {
 	}
 	defer mgr.Close()
 
-	slog.Info("connected to skills", "skills", mgr.ListServerNames())
+	slog.Info("connected to servers", "servers", mgr.ListServerNames())
 
 	s := app.NewServer(mgr)
 	var serveErr error
-	switch transport {
+	switch opts.transport {
 	case "stdio":
 		serveErr = app.ServeStdio(ctx, s)
 	case "http":
-		serveErr = app.ServeHTTP(ctx, s, host, port)
+		serveErr = app.ServeHTTP(ctx, s, opts.host, opts.port)
 	default:
-		slog.Error("unknown transport (use 'stdio' or 'http')", "transport", transport)
+		slog.Error("unknown transport (use 'stdio' or 'http')", "transport", opts.transport)
 		os.Exit(1)
 	}
 	if serveErr != nil {

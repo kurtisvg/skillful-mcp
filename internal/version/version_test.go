@@ -21,10 +21,9 @@ func TestVersionIsValidSemver(t *testing.T) {
 
 func TestVersionHasNoWhitespace(t *testing.T) {
 	t.Parallel()
-	if Version != Version {
-		t.Errorf("Version contains whitespace: %q", Version)
-	}
-	if len(Version) == 0 {
-		t.Fatal("Version is empty after trimming")
+	for _, c := range Version {
+		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+			t.Fatalf("Version contains whitespace: %q", Version)
+		}
 	}
 }

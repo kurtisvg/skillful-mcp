@@ -27,7 +27,7 @@ func NewManager(ctx context.Context, cfgs map[string]config.Server) (*Manager, e
 			return nil, fmt.Errorf("connecting to %q: %w", name, err)
 		}
 		m.servers[name] = s
-		slog.Info("connected to server", "skill", name)
+		slog.Info("connected to server", "server", name)
 	}
 
 	tools, err := resolveTools(m.servers)
@@ -89,7 +89,7 @@ func resolveTools(servers map[string]*Server) ([]Tool, error) {
 func (m *Manager) GetServer(name string) (*Server, error) {
 	s, ok := m.servers[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown skill: %q", name)
+		return nil, fmt.Errorf("unknown server: %q", name)
 	}
 	return s, nil
 }
@@ -109,7 +109,7 @@ func (m *Manager) AllTools() []Tool {
 func (m *Manager) ServerTools(name string) []Tool {
 	var tools []Tool
 	for _, t := range m.tools {
-		if t.SkillName == name {
+		if t.ServerName == name {
 			tools = append(tools, t)
 		}
 	}
@@ -119,7 +119,7 @@ func (m *Manager) ServerTools(name string) []Tool {
 func (m *Manager) Close() {
 	for name, s := range m.servers {
 		if err := s.Close(); err != nil {
-			slog.Warn("error closing server", "skill", name, "error", err)
+			slog.Warn("error closing server", "server", name, "error", err)
 		}
 	}
 }

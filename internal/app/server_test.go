@@ -214,9 +214,7 @@ func TestE2EMultipleSkills(t *testing.T) {
 	})
 
 	t.Run("execute_code_call_tool", func(t *testing.T) {
-		code := dedent(`
-			execute_sql(sql="SELECT 1")
-		`)
+		code := `execute_sql(sql="SELECT 1")`
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
 			Arguments: map[string]any{"code": code},
@@ -332,9 +330,7 @@ func TestE2EPositionalArgs(t *testing.T) {
 	session := connectTestClient(t, ctx, mgr)
 
 	t.Run("positional_arg", func(t *testing.T) {
-		code := dedent(`
-			execute_sql("SELECT 1")
-		`)
+		code := `execute_sql("SELECT 1")`
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
 			Arguments: map[string]any{"code": code},
@@ -357,9 +353,7 @@ func TestE2EPositionalArgs(t *testing.T) {
 	})
 
 	t.Run("keyword_arg", func(t *testing.T) {
-		code := dedent(`
-			execute_sql(sql="SELECT 2")
-		`)
+		code := `execute_sql(sql="SELECT 2")`
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
 			Arguments: map[string]any{"code": code},
@@ -436,9 +430,7 @@ func TestE2EToolNameConflict(t *testing.T) {
 	})
 
 	t.Run("execute_code_prefixed_name", func(t *testing.T) {
-		code := dedent(`
-			alpha_search(q="test")
-		`)
+		code := `alpha_search(q="test")`
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
 			Arguments: map[string]any{"code": code},
@@ -461,9 +453,7 @@ func TestE2EToolNameConflict(t *testing.T) {
 	})
 
 	t.Run("execute_code_unique_name", func(t *testing.T) {
-		code := dedent(`
-			unique_tool()
-		`)
+		code := `unique_tool()`
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      "execute_code",
 			Arguments: map[string]any{"code": code},

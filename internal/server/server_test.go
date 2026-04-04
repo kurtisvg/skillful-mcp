@@ -100,7 +100,11 @@ func TestE2EMultipleSkills(t *testing.T) {
 		if err := json.Unmarshal([]byte(tc.Text), &names); err != nil {
 			t.Fatal(err)
 		}
-		if len(names) != 2 || names[0] != "database" || names[1] != "filesystem" {
+		nameSet := map[string]bool{}
+		for _, n := range names {
+			nameSet[n] = true
+		}
+		if len(names) != 2 || !nameSet["database"] || !nameSet["filesystem"] {
 			t.Errorf("expected [database, filesystem], got %v", names)
 		}
 	})

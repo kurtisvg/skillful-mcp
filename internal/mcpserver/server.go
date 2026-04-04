@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -16,29 +17,26 @@ type Server struct {
 }
 
 // NewServer connects to a downstream MCP server and returns a Server.
-func NewServer(ctx context.Context, srv *config.ServerConfig) (*Server, error) {
+func NewServer(ctx context.Context, srv config.Server) (*Server, error) {
 	client := mcp.NewClient(&mcp.Implementation{
 		Name:    "skillful-mcp",
 		Version: "0.1.0",
 	}, nil)
 
-	tt, err := srv.TransportType()
-	if err != nil {
-		return nil, err
-	}
-
 	var transport mcp.Transport
-	switch tt {
-	case config.TransportSTDIO:
-		cmd := exec.Command(srv.Command, srv.Args...)
-		cmd.Env = toEnv(srv.Env)
+	switch s := srv.(type) {
+	case *config.StdioServer:
+		cmd := exec.Command(s.Command, s.Args...)
+		cmd.Env = toEnv(s.Env)
 		transport = &mcp.CommandTransport{Command: cmd}
-	case config.TransportHTTP:
-		httpClient := &http.Client{Transport: &headerTransport{base: http.DefaultTransport, headers: srv.Headers}}
-		transport = &mcp.StreamableClientTransport{Endpoint: srv.URL, HTTPClient: httpClient}
-	case config.TransportSSE:
-		httpClient := &http.Client{Transport: &headerTransport{base: http.DefaultTransport, headers: srv.Headers}}
-		transport = &mcp.SSEClientTransport{Endpoint: srv.URL, HTTPClient: httpClient}
+	case *config.HTTPServer:
+		httpClient := &http.Client{Transport: &headerTransport{base: http.DefaultTransport, headers: s.Headers}}
+		transport = &mcp.StreamableClientTransport{Endpoint: s.URL, HTTPClient: httpClient}
+	case *config.SSEServer:
+		httpClient := &http.Client{Transport: &headerTransport{base: http.DefaultTransport, headers: s.Headers}}
+		transport = &mcp.SSEClientTransport{Endpoint: s.URL, HTTPClient: httpClient}
+	default:
+		return nil, fmt.Errorf("unsupported server config type: %T", srv)
 	}
 
 	session, err := client.Connect(ctx, transport, nil)

@@ -5,8 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/kurtisvg/skillful-mcp)](https://goreportcard.com/report/github.com/kurtisvg/skillful-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Suffering from tool bloat? Need progressive disclosure for your MCP servers?
-Sounds like a Skill Issue 😉
+Too many MCP tools slowing your agent down? Might be a Skill Issue 😉
 
 **skillful-mcp** eliminates tool bloat by turning your MCP servers into Agent Skills in an MCP-native way.
 
@@ -17,12 +16,12 @@ Sounds like a Skill Issue 😉
 
 ## Table of contents
 
-- [Why?](#why)
-- [How it works](#how-it-works)
-- [Getting started](#getting-started)
-- [Configuration](#configuration)
+- [Why?](#-why)
+- [How it works](#-how-it-works)
+- [Getting started](#-getting-started)
+- [Configuration](#-configuration)
 
-## Why?
+## ❓ Why?
 
 Connecting an agent to too many tools (or MCP servers) creates
 [tool bloat][tool-bloat]. An agent with access to 5 servers might have 80+ tools
@@ -35,7 +34,7 @@ down to a lightweight index.
 
 [tool-bloat]: https://kvg.dev/posts/20260125-skills-and-mcp/
 
-## How it works
+## 💡 How it works
 
 ```
 Agent  <--MCP-->  skillful-mcp  <--MCP-->  Database Server
@@ -77,7 +76,7 @@ arguments. If two skills define a tool with the same name, the function is
 prefixed with the skill name (e.g. `database_search`, `docs_search`). Tool
 names returned by `use_skill` always match the function names in `execute_code`.
 
-## Getting started
+## 🚀 Getting started
 
 ### Install
 
@@ -259,7 +258,7 @@ specific capability.
 }
 ```
 
-## Configuration
+## 📝 Configuration
 
 Each entry in `mcpServers` is a downstream server that becomes a skill. The key
 is the skill name. The value depends on the transport type.

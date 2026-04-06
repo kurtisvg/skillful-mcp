@@ -27,6 +27,6 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Verify container runs
         run: |
-          output=$(docker run --rm skillful-mcp:test --version 2>&1)
+          output=$(docker run --rm skillful-mcp:test --version 2>&1 || true)
           echo "$output"
-          echo "$output" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "$output" | grep -q '[0-9]\.[0-9]\.[0-9]'

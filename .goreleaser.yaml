@@ -1,4 +1,5 @@
 version: 2
+project_name: skillful-mcp
 
 builds:
   - main: .
@@ -23,7 +24,6 @@ checksum:
   name_template: checksums.txt
 
 release:
-  use_existing_draft: true
   mode: keep-existing
 
 changelog:

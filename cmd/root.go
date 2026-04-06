@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"github.com/kurtisvg/skillful-mcp/internal/config"
 	"github.com/kurtisvg/skillful-mcp/internal/mcpserver"
 	"github.com/kurtisvg/skillful-mcp/internal/version"
+
+	flag "github.com/spf13/pflag"
 )
 
 type options struct {

@@ -82,11 +82,19 @@ names returned by `use_skill` always match the function names in `execute_code`.
 ### Install
 
 <details open>
-<summary><strong>Go install</strong></summary>
+<summary><strong>Download a binary</strong></summary>
 
 ```sh
-go install github.com/kurtisvg/skillful-mcp@latest
+VERSION="0.0.1"
+OS="linux"       # or: darwin, windows
+ARCH="amd64"     # or: arm64
+
+curl -L "https://github.com/kurtisvg/skillful-mcp/releases/download/v${VERSION}/skillful-mcp_${VERSION}_${OS}_${ARCH}" -o skillful-mcp
+chmod +x skillful-mcp
 ```
+
+Or download from the [releases page](https://github.com/kurtisvg/skillful-mcp/releases/latest).
+
 </details>
 
 <details>
@@ -97,6 +105,14 @@ docker run --rm \
   -v /path/to/mcp.json:/mcp.json \
   ghcr.io/kurtisvg/skillful-mcp:latest \
   --config /mcp.json --transport http --port 8080
+```
+</details>
+
+<details>
+<summary><strong>Go install</strong> (requires Go 1.25+)</summary>
+
+```sh
+go install github.com/kurtisvg/skillful-mcp@latest
 ```
 </details>
 

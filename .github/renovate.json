@@ -7,7 +7,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^.github/workflows/[^/]+\\.ya?ml$/"
+      ],
       "matchStrings": ["go-version:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"],
       "depNameTemplate": "go",
       "datasourceTemplate": "golang-version"
@@ -20,8 +22,10 @@
     },
     {
       "matchManagers": ["gomod"],
-      "excludeDepNames": ["go"],
-      "groupName": "go dependencies"
+      "groupName": "go dependencies",
+      "matchDepNames": [
+        "!go"
+      ]
     },
     {
       "matchManagers": ["github-actions"],

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits"],
+  "dependencyDashboard": true,
+  "minimumReleaseAge": "14 days",
+  "postUpdateOptions": ["gomodTidy"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^.github/workflows/[^/]+\\.ya?ml$"],
+      "matchStrings": ["go-version:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": ["go"],
+      "groupName": "go version"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "groupName": "go dependencies"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "ci/cd"
+    }
+  ]
+}

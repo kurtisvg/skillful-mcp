@@ -3,16 +3,8 @@
   "extends": ["config:recommended", ":semanticCommits"],
   "dependencyDashboard": true,
   "minimumReleaseAge": "14 days",
+  "rebaseWhen": "behind-base-branch",
   "postUpdateOptions": ["gomodTidy"],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "fileMatch": ["^.github/workflows/[^/]+\\.ya?ml$"],
-      "matchStrings": ["go-version:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"],
-      "depNameTemplate": "go",
-      "datasourceTemplate": "golang-version"
-    }
-  ],
   "packageRules": [
     {
       "matchDepNames": ["go", "golang"],
@@ -26,6 +18,7 @@
     },
     {
       "matchManagers": ["github-actions"],
+      "matchDepNames": ["!go"],
       "groupName": "ci/cd"
     }
   ]

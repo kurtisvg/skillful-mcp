@@ -15,11 +15,12 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": ["go"],
+      "matchDepNames": ["go", "golang"],
       "groupName": "go version"
     },
     {
       "matchManagers": ["gomod"],
+      "excludeDepNames": ["go"],
       "groupName": "go dependencies"
     },
     {
